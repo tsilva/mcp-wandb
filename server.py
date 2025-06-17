@@ -139,14 +139,14 @@ async def get_run_details(entity: str, project_name: str, run_id: str) -> str:
     try:
         run = api.run(f"{entity}/{project_name}/{run_id}")
 
-        # Basic Overview
+        # Basic Overview – using safe access
         overview = {
             "name": run.name,
             "id": run.id,
             "state": run.state,
-            "created_at": str(run.created_at),
-            "finished_at": str(run.finished_at),
-            "duration (s)": run.duration,
+            "created_at": str(getattr(run, "created_at", "N/A")),
+            "finished_at": str(getattr(run, "finished_at", "N/A")),
+            "duration (s)": getattr(run, "duration", "N/A"),
             "tags": run.tags,
             "notes": run.notes,
             "url": run.url,
@@ -158,10 +158,9 @@ async def get_run_details(entity: str, project_name: str, run_id: str) -> str:
         # Summary Metrics
         summary = dict(run.summary)
 
-        # System Info (if available)
-        system = {}
+        # System Info (safe access)
         try:
-            system = dict(run.system_metrics)
+            system = dict(getattr(run, "system_metrics", {}))
         except Exception:
             system = {"info": "System metrics not available."}
 
