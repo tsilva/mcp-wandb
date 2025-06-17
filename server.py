@@ -124,6 +124,66 @@ async def plot_run_metric(
     except Exception as e:
         return f"Error plotting metrics from run '{run_id}': {e}"
 
+@mcp.tool()
+async def get_run_details(entity: str, project_name: str, run_id: str) -> str:
+    """
+    Retrieve detailed information about a W&B run, including:
+    - Overview (name, id, state, etc.)
+    - Config (user-defined hyperparameters)
+    - Summary (final logged metrics)
+    - System/environment details
+    """
+    if not (project_name and run_id):
+        return "Both project_name and run_id are required."
+
+    try:
+        run = api.run(f"{entity}/{project_name}/{run_id}")
+
+        # Basic Overview
+        overview = {
+            "name": run.name,
+            "id": run.id,
+            "state": run.state,
+            "created_at": str(run.created_at),
+            "finished_at": str(run.finished_at),
+            "duration (s)": run.duration,
+            "tags": run.tags,
+            "notes": run.notes,
+            "url": run.url,
+        }
+
+        # Config
+        config = dict(run.config)
+
+        # Summary Metrics
+        summary = dict(run.summary)
+
+        # System Info (if available)
+        system = {}
+        try:
+            system = dict(run.system_metrics)
+        except Exception:
+            system = {"info": "System metrics not available."}
+
+        def format_dict(d: dict, title: str) -> str:
+            if not d:
+                return f"\n### {title}\n(No data)\n"
+            lines = "\n".join(f"{k}: {v}" for k, v in d.items())
+            return f"\n### {title}\n{lines}\n"
+
+        # Combine all sections
+        output = (
+            format_dict(overview, "Overview") +
+            format_dict(config, "Config") +
+            format_dict(summary, "Summary") +
+            format_dict(system, "System Info")
+        )
+
+        return output
+
+    except Exception as e:
+        return f"Error fetching run details for '{run_id}': {e}"
+
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")
