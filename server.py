@@ -1,11 +1,11 @@
 import os
-import tempfile
 import matplotlib.pyplot as plt
 import wandb
-from mcp.server.fastmcp import FastMCP
-from dotenv import load_dotenv
-from typing import List
+from mcp.server.fastmcp import FastMCP, Image
+import io
+from typing import List         
 
+from dotenv import load_dotenv
 load_dotenv(override=True)
 
 # Initialize FastMCP server
@@ -57,44 +57,73 @@ async def list_project_metrics(entity: str, project_name: str) -> str:
     except Exception as e:
         return f"Error fetching metrics for '{project_name}': {e}"
 
+
 @mcp.tool()
-async def plot_run_metric(entity: str, project_name: str, run_id: str, metric_names: List[str]) -> str:
+async def plot_run_metric(
+    entity: str,
+    project_name: str,
+    run_id: str,
+    metric_names: List[str],
+) -> str:                        # <-- return str, not bytes
     """
-    Plot one or more metrics from a specific W&B run and return the image path.
+    Plot the requested metrics and return the **base-64-encoded PNG**.
     """
 
-    if not project_name or not run_id or not metric_names:
+    if not (project_name and run_id and metric_names):
         return "project_name, run_id, and metric_names are required."
 
     try:
-        run = api.run(f"{entity}/{project_name}/{run_id}")
-        history = run.history(keys=metric_names, pandas=True)
+        import pandas as pd
+    except ImportError:
+        pd = None
 
-        if history.empty:
+    try:
+        run = api.run(f"{entity}/{project_name}/{run_id}")
+
+        # Always fetch list-of-dicts for predictable shape
+        raw_history = run.history(keys=metric_names, pandas=False)
+        if not raw_history:
             return f"No metric data found in run '{run_id}'."
 
-        available_metrics = [m for m in metric_names if m in history.columns]
+        # Data-frame if possible, plain Python dict otherwise
+        if pd:
+            history = pd.DataFrame(raw_history)
+        else:
+            history = {k: [] for k in metric_names}
+            for row in raw_history:
+                for k in metric_names:
+                    history[k].append(row.get(k))
+
+        available_metrics = [
+            m for m in metric_names
+            if (m in history.columns if pd else any(history[m]))
+        ]
         if not available_metrics:
             return f"None of the requested metrics found in run '{run_id}'."
 
+        # ------- plotting -------
         plt.figure(figsize=(10, 6))
         for metric in available_metrics:
-            plt.plot(history[metric], label=metric)
+            y = history[metric] if pd else history[metric]
+            plt.plot(y, label=metric)
 
-        plt.title(f"Run: {run.name} - Metrics: {', '.join(available_metrics)}")
+        plt.title(f"Run: {run.name} – Metrics: {', '.join(available_metrics)}")
         plt.xlabel("Step")
         plt.ylabel("Value")
         plt.grid(True)
         plt.legend()
 
-        temp_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name
-        plt.savefig(temp_path)
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", bbox_inches="tight")
         plt.close()
+        buf.seek(0)
 
-        return temp_path
+        # hand raw bytes to FastMCP – no manual b64 step
+        return Image(data=buf.getvalue(), format="png")
 
     except Exception as e:
         return f"Error plotting metrics from run '{run_id}': {e}"
+
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")
