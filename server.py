@@ -37,6 +37,23 @@ async def list_wandb_runs(entity: str, project_name: str) -> str:
         return f"Error fetching runs for '{project_name}': {e}"
 
 @mcp.tool()
+async def list_project_metrics(entity: str, project_name: str) -> str:
+    """List all unique metric names logged in a W&B project."""
+    if not project_name:
+        return "Project name is required."
+
+    try:
+        runs = api.runs(path=f"{entity}/{project_name}")
+        metrics = set()
+        for run in runs:
+            history = run.history(samples=1)
+            metrics.update([c for c in history.columns if not c.startswith("_")])
+
+        return "\n".join(sorted(metrics)) or f"No metrics found in '{project_name}'."
+    except Exception as e:
+        return f"Error fetching metrics for '{project_name}': {e}"
+
+@mcp.tool()
 async def plot_run_metric(entity: str, project_name: str, run_id: str, metric_names: List[str]) -> str:
     """
     Plot one or more metrics from a specific W&B run and return the image path.
