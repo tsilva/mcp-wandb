@@ -68,7 +68,7 @@ async def plot_run_metric(entity: str, project_name: str, run_id: str, metric_na
 
     try:
         run = api.run(f"{entity}/{project_name}/{run_id}")
-        history = run.history(keys=metric_names)
+        history = run.history(keys=metric_names, pandas=True)
 
         if history.empty:
             return f"No metric data found in run '{run_id}'."
