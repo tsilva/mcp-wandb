@@ -19,3 +19,20 @@ Ensure the environment variable `WANDB_API_KEY` is set and run:
 ```bash
 python server.py
 ```
+
+## Development
+
+Unit tests require access to a real W&B account. Set the following environment
+variables before running `pytest`:
+
+- `WANDB_API_KEY` or `TEST_WANDB_API_KEY`
+- `TEST_WANDB_ENTITY` – the W&B entity to query
+- `TEST_WANDB_PROJECT` – project name used for run/metric tests
+- `TEST_WANDB_RUN_ID` – a run ID within the project
+- `TEST_WANDB_METRICS` – comma separated metric names for the run
+
+Run the test suite with:
+
+```bash
+pytest
+```
