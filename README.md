@@ -1,7 +1,7 @@
 # 🪄 simple-wandb-mcp-server
 
 <p align="center">
-  <img src="logo.png" alt="simple-wandb-mcp-server logo" width="200"/>
+  <img src="logo.png" alt="simple-wandb-mcp-server logo" width="400"/>
 </p>
 
 A minimal, blazing-fast Model Context Protocol (MCP) server for Weights & Biases (W&B) projects.
