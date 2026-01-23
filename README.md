@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="logo.png" alt="simple-wandb-mcp-server" width="256"/>
+  <img src="logo.png" alt="simple-wandb-mcp-server" width="512"/>
 
   # simple-wandb-mcp-server
 
