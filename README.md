@@ -7,7 +7,7 @@
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
-  **🔬 Query your Weights & Biases experiments directly from LLM agents via Model Context Protocol**
+  **🔬 Query your Weights & Biases experiments directly from LLM agents via Model Context Protocol 📊**
 
   [W&B Documentation](https://docs.wandb.ai/) · [MCP Specification](https://modelcontextprotocol.io/)
 </div>
