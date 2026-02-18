@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 # Initialize FastMCP server
-mcp = FastMCP("simple-wandb-mcp-server")
+mcp = FastMCP("mcp-wandb")
 
 WANDB_API_KEY = os.getenv("WANDB_API_KEY")
 assert WANDB_API_KEY, "WANDB_API_KEY must be set in the environment."

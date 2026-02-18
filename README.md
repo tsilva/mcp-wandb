@@ -1,40 +1,42 @@
 <div align="center">
-  <img src="logo.png" alt="simple-wandb-mcp-server" width="512"/>
+  <img src="logo.png" alt="mcp-wandb" width="512"/>
 
-  # simple-wandb-mcp-server
+  # mcp-wandb
 
   [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
+  [![wandb](https://img.shields.io/badge/wandb-integrated-orange.svg)](https://wandb.ai/)
 
   **🔬 Query your Weights & Biases experiments directly from LLM agents via Model Context Protocol 📊**
 
-  [W&B Documentation](https://docs.wandb.ai/) · [MCP Specification](https://modelcontextprotocol.io/)
+  [W&B Documentation](https://docs.wandb.ai/) · [MCP Specification](https://modelcontextprotocol.io/) · [Get API Key](https://wandb.ai/settings)
 </div>
 
 ---
 
 ## Overview
 
-A Model Context Protocol (MCP) server that exposes Weights & Biases functionality as tools. Built with FastMCP, it enables LLM agents to query W&B projects, list runs, retrieve metrics, and generate metric plots—all through a simple stdio interface.
+Training a model is only half the work — understanding what happened requires digging through the W&B dashboard, switching context, and manually correlating runs. **mcp-wandb** eliminates that friction.
+
+It's a Model Context Protocol (MCP) server that exposes Weights & Biases as LLM-native tools. Ask your AI agent to query projects, compare runs, surface metrics, or generate plots — all without leaving your workflow.
+
+**Built with [FastMCP](https://github.com/jlowin/fastmcp)**, it runs as a lightweight stdio server that any MCP-compatible client (Claude Desktop, Cursor, etc.) can connect to in seconds.
 
 ## Features
 
-- **List projects** — Get all W&B projects for an entity
-- **Browse runs** — List runs with name, ID, and state
-- **Discover metrics** — Find unique metric names across all runs in a project
-- **Plot metrics** — Generate PNG visualizations of run metrics (returned as base64)
-- **Run details** — Retrieve comprehensive run info including config, summary, and system metrics
+- **List projects** — Get all W&B projects for any entity ⚡
+- **Browse runs** — List runs with name, ID, and state at a glance 📋
+- **Discover metrics** — Find unique metric names logged across all runs 🔍
+- **Plot metrics** — Generate PNG visualizations of run metrics, returned as base64 📈
+- **Run details** — Retrieve comprehensive run info: config, summary, and system metrics 🧪
 
 ## Quick Start
 
 ```bash
-# Install with uv
-uv add simple-wandb-mcp-server
-
-# Or clone and install
-git clone https://github.com/tsilva/simple-wandb-mcp-server.git
-cd simple-wandb-mcp-server
+# Clone and install
+git clone https://github.com/tsilva/mcp-wandb.git
+cd mcp-wandb
 uv sync
 ```
 
@@ -42,7 +44,7 @@ Set your W&B API key:
 
 ```bash
 export WANDB_API_KEY=your_api_key
-# Or create a .env file
+# Or use a .env file
 echo "WANDB_API_KEY=your_api_key" > .env
 ```
 
@@ -54,14 +56,14 @@ python server.py
 
 ## MCP Client Configuration
 
-Add to your MCP client configuration (e.g., Claude Desktop):
+Add to your MCP client config (e.g., Claude Desktop `claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
     "wandb": {
       "command": "python",
-      "args": ["/path/to/simple-wandb-mcp-server/server.py"],
+      "args": ["/path/to/mcp-wandb/server.py"],
       "env": {
         "WANDB_API_KEY": "your_api_key"
       }
@@ -69,6 +71,8 @@ Add to your MCP client configuration (e.g., Claude Desktop):
   }
 }
 ```
+
+Restart your client after updating the config.
 
 ## Available Tools
 
@@ -82,13 +86,19 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 
 ## Example Usage
 
-Once connected to an MCP client, you can ask questions like:
+Once connected to an MCP client, ask your agent things like:
 
 - *"List all my W&B projects"*
 - *"Show me the runs in my training-experiments project"*
 - *"What metrics are being logged in this project?"*
 - *"Plot the loss and accuracy for run abc123"*
-- *"Give me the details of my latest run"*
+- *"Give me the full details of my latest run"*
+
+## Requirements
+
+- Python 3.13+
+- A [Weights & Biases](https://wandb.ai/) account and API key
+- An MCP-compatible client (Claude Desktop, Cursor, etc.)
 
 ## Development
 
@@ -105,14 +115,9 @@ TEST_WANDB_METRICS=<metric1,metric2> \
 pytest tests/
 ```
 
-## Requirements
-
-- Python 3.13+
-- W&B account and API key
-
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE) for details.
 
 ## Author
 

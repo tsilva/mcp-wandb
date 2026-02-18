@@ -1,5 +1,5 @@
 [project]
-name = "simple-wandb-mcp-server"
+name = "mcp-wandb"
 version = "0.1.0"
 description = "A simple server for MCP that uses Weights & Biases (wandb) for logging and visualization."
 readme = "README.md"
