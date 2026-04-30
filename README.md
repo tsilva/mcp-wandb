@@ -1,62 +1,26 @@
 <div align="center">
-  <img src="logo.png" alt="mcp-wandb" width="512"/>
+  <img src="./logo.png" alt="mcp-wandb" width="220" />
 
-  # mcp-wandb
-
-  [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-  [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
-  [![wandb](https://img.shields.io/badge/wandb-integrated-orange.svg)](https://wandb.ai/)
+  <h1>mcp-wandb</h1>
 
   **🔬 Query your Weights & Biases experiments directly from LLM agents via Model Context Protocol 📊**
-
-  [W&B Documentation](https://docs.wandb.ai/) · [MCP Specification](https://modelcontextprotocol.io/) · [Get API Key](https://wandb.ai/settings)
 </div>
 
----
+mcp-wandb is a small Model Context Protocol server for querying Weights & Biases from MCP-compatible clients. It exposes W&B projects, runs, metrics, run details, and metric plots as FastMCP tools over stdio.
 
-## Overview
+Use it when you want an agent to inspect experiment data without switching to the W&B dashboard or hand-copying run metadata.
 
-Training a model is only half the work — understanding what happened requires digging through the W&B dashboard, switching context, and manually correlating runs. **mcp-wandb** eliminates that friction.
-
-It's a Model Context Protocol (MCP) server that exposes Weights & Biases as LLM-native tools. Ask your AI agent to query projects, compare runs, surface metrics, or generate plots — all without leaving your workflow.
-
-**Built with [FastMCP](https://github.com/jlowin/fastmcp)**, it runs as a lightweight stdio server that any MCP-compatible client (Claude Desktop, Cursor, etc.) can connect to in seconds.
-
-## Features
-
-- **List projects** — Get all W&B projects for any entity ⚡
-- **Browse runs** — List runs with name, ID, and state at a glance 📋
-- **Discover metrics** — Find unique metric names logged across all runs 🔍
-- **Plot metrics** — Generate PNG visualizations of run metrics, returned as base64 📈
-- **Run details** — Retrieve comprehensive run info: config, summary, and system metrics 🧪
-
-## Quick Start
+## Install
 
 ```bash
-# Clone and install
 git clone https://github.com/tsilva/mcp-wandb.git
 cd mcp-wandb
 uv sync
-```
-
-Set your W&B API key:
-
-```bash
 export WANDB_API_KEY=your_api_key
-# Or use a .env file
-echo "WANDB_API_KEY=your_api_key" > .env
-```
-
-Run the server:
-
-```bash
 python server.py
 ```
 
-## MCP Client Configuration
-
-Add to your MCP client config (e.g., Claude Desktop `claude_desktop_config.json`):
+Configure your MCP client to run the repo's `server.py` file, then restart the client.
 
 ```json
 {
@@ -72,53 +36,34 @@ Add to your MCP client config (e.g., Claude Desktop `claude_desktop_config.json`
 }
 ```
 
-Restart your client after updating the config.
-
-## Available Tools
-
-| Tool | Parameters | Description |
-|------|------------|-------------|
-| `get_wandb_projects` | `entity` | List all projects for a W&B entity |
-| `list_wandb_runs` | `entity`, `project_name` | List all runs in a project |
-| `list_project_metrics` | `entity`, `project_name` | Get unique metric names across all runs |
-| `plot_run_metric` | `entity`, `project_name`, `run_id`, `metric_names` | Generate a PNG plot of specified metrics |
-| `get_run_details` | `entity`, `project_name`, `run_id` | Get detailed run info (overview, config, summary, system metrics) |
-
-## Example Usage
-
-Once connected to an MCP client, ask your agent things like:
-
-- *"List all my W&B projects"*
-- *"Show me the runs in my training-experiments project"*
-- *"What metrics are being logged in this project?"*
-- *"Plot the loss and accuracy for run abc123"*
-- *"Give me the full details of my latest run"*
-
-## Requirements
-
-- Python 3.13+
-- A [Weights & Biases](https://wandb.ai/) account and API key
-- An MCP-compatible client (Claude Desktop, Cursor, etc.)
-
-## Development
+## Commands
 
 ```bash
-# Install dependencies
-uv sync
-
-# Run tests (requires W&B credentials)
-WANDB_API_KEY=<key> \
-TEST_WANDB_ENTITY=<entity> \
-TEST_WANDB_PROJECT=<project> \
-TEST_WANDB_RUN_ID=<run_id> \
-TEST_WANDB_METRICS=<metric1,metric2> \
-pytest tests/
+uv sync           # install dependencies into the local uv environment
+python server.py  # run the MCP server over stdio
+pytest tests/     # run tests; W&B credentials are required for live API checks
 ```
+
+## Tools
+
+- `get_wandb_projects(entity)` lists projects for a W&B entity.
+- `list_wandb_runs(entity, project_name)` lists run names, IDs, and states.
+- `list_project_metrics(entity, project_name)` returns metric names found across runs.
+- `plot_run_metric(entity, project_name, run_id, metric_names)` returns a PNG metric plot as a FastMCP image.
+- `get_run_details(entity, project_name, run_id)` returns overview, config, summary, and system metadata.
+
+## Notes
+
+- Python 3.13 or newer is required.
+- `WANDB_API_KEY` must be set in the environment, or in a `.env` file loaded by `python-dotenv`.
+- The server uses `wandb.Api` directly and does not keep a local database.
+- Tests call the real W&B API and skip when required credentials or test project variables are missing.
+- Live test variables are `TEST_WANDB_ENTITY`, `TEST_WANDB_PROJECT`, `TEST_WANDB_RUN_ID`, and `TEST_WANDB_METRICS`.
+
+## Architecture
+
+![mcp-wandb architecture diagram](./architecture.png)
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
-
-## Author
-
-[tsilva](https://github.com/tsilva)
+[MIT](LICENSE)
