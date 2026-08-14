@@ -1,112 +1,125 @@
 import asyncio
 import importlib
-import os
 import sys
 from pathlib import Path
-from types import ModuleType
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
-import wandb
 
-# Ensure repository root is on the import path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-# Stub out FastMCP and dotenv so server imports without the full MCP env
-class FakeFastMCP:
-    def __init__(self, name):
-        self.name = name
 
-    def tool(self):
-        def decorator(fn):
-            return fn
-        return decorator
-
-    def run(self, *args, **kwargs):
-        pass
-
-fake_fastmcp_module = ModuleType("mcp.server.fastmcp")
-fake_fastmcp_module.FastMCP = FakeFastMCP
-fake_server_module = ModuleType("mcp.server")
-fake_server_module.fastmcp = fake_fastmcp_module
-fake_mcp_module = ModuleType("mcp")
-fake_mcp_module.server = fake_server_module
-sys.modules.setdefault("mcp", fake_mcp_module)
-sys.modules.setdefault("mcp.server", fake_server_module)
-sys.modules.setdefault("mcp.server.fastmcp", fake_fastmcp_module)
-
-fake_dotenv = ModuleType("dotenv")
-fake_dotenv.load_dotenv = lambda *args, **kwargs: None
-sys.modules.setdefault("dotenv", fake_dotenv)
+@pytest.fixture
+def server(monkeypatch):
+    monkeypatch.delenv("WANDB_API_KEY", raising=False)
+    sys.modules.pop("server", None)
+    module = importlib.import_module("server")
+    module._api = MagicMock()
+    return module
 
 
-def load_server():
-    api_key = os.getenv("WANDB_API_KEY") or os.getenv("TEST_WANDB_API_KEY")
-    if not api_key:
-        pytest.skip("WANDB_API_KEY not provided")
-    os.environ.setdefault("WANDB_API_KEY", api_key)
-    return importlib.import_module("server")
+def test_mcp_tools_are_registered_with_the_real_sdk(server):
+    tools = asyncio.run(server.mcp.list_tools())
+
+    assert {tool.name for tool in tools} == {
+        "get_wandb_projects",
+        "list_project_metrics",
+        "list_wandb_runs",
+        "plot_run_metric",
+        "get_run_details",
+    }
 
 
-@pytest.mark.skipif(not (os.getenv("WANDB_API_KEY") or os.getenv("TEST_WANDB_API_KEY")), reason="WANDB_API_KEY not set")
-def test_get_wandb_projects_matches_api():
-    server = load_server()
-    entity = os.getenv("TEST_WANDB_ENTITY")
-    if not entity:
-        pytest.skip("TEST_WANDB_ENTITY not set")
-    expected = [p.name for p in server.api.projects(entity=entity)]
-    result = asyncio.run(server.get_wandb_projects(entity))
-    result_names = [line[2:] for line in result.splitlines() if line.startswith("- ")]
-    assert result_names == expected
+def test_discovery_does_not_require_credentials(monkeypatch):
+    monkeypatch.delenv("WANDB_API_KEY", raising=False)
+    sys.modules.pop("server", None)
+
+    module = importlib.import_module("server")
+
+    assert module._api is None
+    assert "WANDB_API_KEY" in asyncio.run(module.get_wandb_projects("example"))
 
 
-@pytest.mark.skipif(not (os.getenv("WANDB_API_KEY") or os.getenv("TEST_WANDB_API_KEY")), reason="WANDB_API_KEY not set")
-def test_list_wandb_runs_matches_api():
-    server = load_server()
-    entity = os.getenv("TEST_WANDB_ENTITY")
-    project = os.getenv("TEST_WANDB_PROJECT")
-    if not entity or not project:
-        pytest.skip("TEST_WANDB_ENTITY or TEST_WANDB_PROJECT not set")
-    expected = [f"- {r.name} (id: {r.id}, state: {r.state})" for r in server.api.runs(path=f"{entity}/{project}")]
-    result = asyncio.run(server.list_wandb_runs(entity, project))
-    result_lines = result.splitlines()
-    assert result_lines == expected
+def test_get_wandb_projects_formats_names(server):
+    server._api.projects.return_value = [SimpleNamespace(name="one"), SimpleNamespace(name="two")]
+
+    result = asyncio.run(server.get_wandb_projects("entity"))
+
+    assert result == "- one\n- two"
+    server._api.projects.assert_called_once_with(entity="entity")
 
 
-@pytest.mark.skipif(not (os.getenv("WANDB_API_KEY") or os.getenv("TEST_WANDB_API_KEY")), reason="WANDB_API_KEY not set")
-def test_list_project_metrics_matches_api():
-    server = load_server()
-    entity = os.getenv("TEST_WANDB_ENTITY")
-    project = os.getenv("TEST_WANDB_PROJECT")
-    if not entity or not project:
-        pytest.skip("TEST_WANDB_ENTITY or TEST_WANDB_PROJECT not set")
+def test_list_wandb_runs_rejects_a_missing_project_without_an_api_call(server):
+    result = asyncio.run(server.list_wandb_runs("entity", ""))
 
-    runs = server.api.runs(path=f"{entity}/{project}")
-    metrics = set()
-    for run in runs:
-        history_rows = run.history(samples=1, pandas=False)
-        if history_rows:
-            metrics.update([k for k in history_rows[0].keys() if not k.startswith("_")])
-    expected = sorted(metrics)
-
-    result = asyncio.run(server.list_project_metrics(entity, project))
-    result_metrics = sorted([m for m in result.splitlines() if m])
-    assert result_metrics == expected
+    assert result == "Project name is required."
+    server._api.runs.assert_not_called()
 
 
-@pytest.mark.skipif(not (os.getenv("WANDB_API_KEY") or os.getenv("TEST_WANDB_API_KEY")), reason="WANDB_API_KEY not set")
-def test_plot_run_metric_creates_file(tmp_path):
-    server = load_server()
-    entity = os.getenv("TEST_WANDB_ENTITY")
-    project = os.getenv("TEST_WANDB_PROJECT")
-    run_id = os.getenv("TEST_WANDB_RUN_ID")
-    metric_names = os.getenv("TEST_WANDB_METRICS")
-    if not all([entity, project, run_id, metric_names]):
-        pytest.skip("Required wandb details not set")
+def test_list_wandb_runs_formats_run_metadata(server):
+    server._api.runs.return_value = [SimpleNamespace(name="train", id="run-1", state="finished")]
 
-    metric_list = [m.strip() for m in metric_names.split(",")]
-    path = asyncio.run(server.plot_run_metric(entity, project, run_id, metric_list))
-    assert os.path.isfile(path)
-    assert os.path.getsize(path) > 0
-    os.remove(path)
+    result = asyncio.run(server.list_wandb_runs("entity", "project"))
+
+    assert result == "- train (id: run-1, state: finished)"
+
+
+def test_list_project_metrics_excludes_private_fields(server):
+    run = MagicMock()
+    run.history.return_value = [{"accuracy": 0.9, "loss": 0.1, "_step": 1}]
+    server._api.runs.return_value = [run]
+
+    result = asyncio.run(server.list_project_metrics("entity", "project"))
+
+    assert result == "accuracy\nloss"
+    run.history.assert_called_once_with(samples=1, pandas=False)
+
+
+def test_plot_run_metric_returns_a_png_image(server):
+    run = MagicMock(name="run")
+    run.name = "training"
+    run.history.return_value = [{"loss": 1.0}, {"loss": 0.5}]
+    server._api.run.return_value = run
+
+    result = asyncio.run(server.plot_run_metric("entity", "project", "run-1", ["loss"]))
+
+    assert isinstance(result, server.Image)
+    assert result.data.startswith(b"\x89PNG\r\n\x1a\n")
+    assert result.to_image_content().mimeType == "image/png"
+    run.history.assert_called_once_with(keys=["loss"], pandas=False)
+
+
+def test_get_run_details_formats_expected_sections(server):
+    run = SimpleNamespace(
+        name="training",
+        id="run-1",
+        state="finished",
+        created_at="2026-01-01",
+        finished_at="2026-01-02",
+        duration=10,
+        tags=["test"],
+        notes="offline fixture",
+        url="https://example.invalid/run-1",
+        config={"epochs": 2},
+        summary={"accuracy": 0.9},
+        system_metrics={"cpu": 1},
+    )
+    server._api.run.return_value = run
+
+    result = asyncio.run(server.get_run_details("entity", "project", "run-1"))
+
+    assert "### Overview" in result
+    assert "### Config" in result
+    assert "epochs: 2" in result
+    assert "accuracy: 0.9" in result
+
+
+def test_api_errors_are_returned_without_leaking_control_flow(server):
+    server._api.projects.side_effect = RuntimeError("rejected fixture")
+
+    result = asyncio.run(server.get_wandb_projects("../../unexpected"))
+
+    assert result == "Error fetching projects: rejected fixture"

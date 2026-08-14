@@ -1,28 +1,40 @@
+import io
 import os
+from typing import List
+
 import matplotlib.pyplot as plt
 import wandb
-from mcp.server.fastmcp import FastMCP, Image
-import io
-from typing import List         
-
 from dotenv import load_dotenv
+from mcp.server.fastmcp import FastMCP, Image
+
 load_dotenv(override=True)
 
 # Initialize FastMCP server
 mcp = FastMCP("mcp-wandb")
 
-WANDB_API_KEY = os.getenv("WANDB_API_KEY")
-assert WANDB_API_KEY, "WANDB_API_KEY must be set in the environment."
-api = wandb.Api(api_key=WANDB_API_KEY)
+_api: wandb.Api | None = None
+
+
+def get_api() -> wandb.Api:
+    """Create the W&B client on first use instead of during MCP discovery."""
+    global _api
+    if _api is None:
+        api_key = os.getenv("WANDB_API_KEY")
+        if not api_key:
+            raise RuntimeError("WANDB_API_KEY must be set in the environment.")
+        _api = wandb.Api(api_key=api_key)
+    return _api
+
 
 @mcp.tool()
 async def get_wandb_projects(entity: str) -> str:
     """Get a list of projects from Weights & Biases."""
     try:
-        projects = api.projects(entity=entity)
+        projects = get_api().projects(entity=entity)
         return "\n".join(f"- {p.name}" for p in projects) or f"No projects found for '{entity}'."
     except Exception as e:
         return f"Error fetching projects: {e}"
+
 
 @mcp.tool()
 async def list_wandb_runs(entity: str, project_name: str) -> str:
@@ -31,10 +43,14 @@ async def list_wandb_runs(entity: str, project_name: str) -> str:
         return "Project name is required."
 
     try:
-        runs = api.runs(path=f"{entity}/{project_name}")
-        return "\n".join(f"- {r.name} (id: {r.id}, state: {r.state})" for r in runs) or f"No runs found in '{project_name}'."
+        runs = get_api().runs(path=f"{entity}/{project_name}")
+        return (
+            "\n".join(f"- {r.name} (id: {r.id}, state: {r.state})" for r in runs)
+            or f"No runs found in '{project_name}'."
+        )
     except Exception as e:
         return f"Error fetching runs for '{project_name}': {e}"
+
 
 @mcp.tool()
 async def list_project_metrics(entity: str, project_name: str) -> str:
@@ -43,7 +59,7 @@ async def list_project_metrics(entity: str, project_name: str) -> str:
         return "Project name is required."
 
     try:
-        runs = api.runs(path=f"{entity}/{project_name}")
+        runs = get_api().runs(path=f"{entity}/{project_name}")
         metrics = set()
         for run in runs:
             # Run.history can return a DataFrame if pandas is installed, or a
@@ -64,7 +80,7 @@ async def plot_run_metric(
     project_name: str,
     run_id: str,
     metric_names: List[str],
-) -> str:                        # <-- return str, not bytes
+) -> str:
     """
     Plot the requested metrics and return the **base-64-encoded PNG**.
     """
@@ -78,7 +94,7 @@ async def plot_run_metric(
         pd = None
 
     try:
-        run = api.run(f"{entity}/{project_name}/{run_id}")
+        run = get_api().run(f"{entity}/{project_name}/{run_id}")
 
         # Always fetch list-of-dicts for predictable shape
         raw_history = run.history(keys=metric_names, pandas=False)
@@ -95,8 +111,7 @@ async def plot_run_metric(
                     history[k].append(row.get(k))
 
         available_metrics = [
-            m for m in metric_names
-            if (m in history.columns if pd else any(history[m]))
+            m for m in metric_names if (m in history.columns if pd else any(history[m]))
         ]
         if not available_metrics:
             return f"None of the requested metrics found in run '{run_id}'."
@@ -124,6 +139,7 @@ async def plot_run_metric(
     except Exception as e:
         return f"Error plotting metrics from run '{run_id}': {e}"
 
+
 @mcp.tool()
 async def get_run_details(entity: str, project_name: str, run_id: str) -> str:
     """
@@ -137,7 +153,7 @@ async def get_run_details(entity: str, project_name: str, run_id: str) -> str:
         return "Both project_name and run_id are required."
 
     try:
-        run = api.run(f"{entity}/{project_name}/{run_id}")
+        run = get_api().run(f"{entity}/{project_name}/{run_id}")
 
         # Basic Overview – using safe access
         overview = {
@@ -172,10 +188,10 @@ async def get_run_details(entity: str, project_name: str, run_id: str) -> str:
 
         # Combine all sections
         output = (
-            format_dict(overview, "Overview") +
-            format_dict(config, "Config") +
-            format_dict(summary, "Summary") +
-            format_dict(system, "System Info")
+            format_dict(overview, "Overview")
+            + format_dict(config, "Config")
+            + format_dict(summary, "Summary")
+            + format_dict(system, "System Info")
         )
 
         return output
