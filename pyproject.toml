@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "httpx>=0.28.1",
     "matplotlib>=3.10.3",
-    "mcp[cli]>=1.29,<2",
+    "mcp[cli]>=2.0.0,<3",
     "python-dotenv>=1.2.2",
     "wandb>=0.20.1",
 ]
