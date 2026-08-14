@@ -15,9 +15,9 @@ Use it when you want an agent to inspect experiment data without switching to th
 ```bash
 git clone https://github.com/tsilva/mcp-wandb.git
 cd mcp-wandb
-uv sync
+uv sync --locked --no-config --exclude-newer '7 days'
 export WANDB_API_KEY=your_api_key
-python server.py
+uv run python server.py
 ```
 
 Configure your MCP client to run the repo's `server.py` file, then restart the client.
@@ -39,9 +39,9 @@ Configure your MCP client to run the repo's `server.py` file, then restart the c
 ## Commands
 
 ```bash
-uv sync           # install dependencies into the local uv environment
-python server.py  # run the MCP server over stdio
-pytest tests/     # run tests; W&B credentials are required for live API checks
+uv sync --locked --no-config --exclude-newer '7 days'  # install the reviewed lockfile
+uv run python server.py                                # run the MCP server over stdio
+uv run pytest -q                                      # run offline mocked behavior tests
 ```
 
 ## Tools
@@ -55,10 +55,10 @@ pytest tests/     # run tests; W&B credentials are required for live API checks
 ## Notes
 
 - Python 3.13 or newer is required.
-- `WANDB_API_KEY` must be set in the environment, or in a `.env` file loaded by `python-dotenv`.
+- `WANDB_API_KEY` must be set before invoking a W&B tool. MCP tool discovery and startup do not contact W&B.
 - The server uses `wandb.Api` directly and does not keep a local database.
-- Tests call the real W&B API and skip when required credentials or test project variables are missing.
-- Live test variables are `TEST_WANDB_ENTITY`, `TEST_WANDB_PROJECT`, `TEST_WANDB_RUN_ID`, and `TEST_WANDB_METRICS`.
+- Tests use mocked W&B responses, send no external requests, and exercise registration against the real MCP SDK.
+- The MCP SDK is held on its patched 1.x line because MCP 2 removes the FastMCP module used by this server.
 
 ## Architecture
 
