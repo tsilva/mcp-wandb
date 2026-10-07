@@ -1,10 +1,10 @@
-<div align="center">
+<p align="center">
   <img src="./logo.png" alt="mcp-wandb" width="220" />
-
-  <h1>mcp-wandb</h1>
-
-  **🔬 Query your Weights & Biases experiments directly from LLM agents via Model Context Protocol 📊**
-</div>
+  <br />
+  <!-- repo-tagline:start -->
+  <strong>🔬 Query Weights &amp; Biases experiments through MCP 📊</strong>
+  <!-- repo-tagline:end -->
+</p>
 
 mcp-wandb is a small Model Context Protocol server for querying Weights & Biases from MCP-compatible clients. It exposes W&B projects, runs, metrics, run details, and metric plots as FastMCP tools over stdio.
 
