@@ -67,3 +67,5 @@ uv run pytest -q                                      # run offline mocked behav
 ## License
 
 [MIT](LICENSE)
+
+CI uses repository-selected, SHA-pinned setup actions. When rotating a pin, replace the corresponding allowlist entry with the reviewed release commit while retaining the selected-only policy and SHA pinning.
