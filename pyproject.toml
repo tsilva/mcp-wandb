@@ -29,4 +29,7 @@ exclude-newer = "7 days"
 constraint-dependencies = [
   "mistralai!=2.4.6",
   "guardrails-ai!=0.10.1",
+  "certifi>=2026.10.19",
+  "pillow>=13.0.0",
+  "opentelemetry-api>=1.45.1",
 ]
