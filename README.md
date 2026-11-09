@@ -15,7 +15,7 @@ Use it when you want an agent to inspect experiment data without switching to th
 ```bash
 git clone https://github.com/tsilva/mcp-wandb.git
 cd mcp-wandb
-uv sync --locked --no-config --exclude-newer '7 days'
+uv sync --locked --exclude-newer '7 days'
 export WANDB_API_KEY=your_api_key
 uv run python server.py
 ```
@@ -39,7 +39,7 @@ Configure your MCP client to run the repo's `server.py` file, then restart the c
 ## Commands
 
 ```bash
-uv sync --locked --no-config --exclude-newer '7 days'  # install the reviewed lockfile
+uv sync --locked --exclude-newer '7 days'  # install the reviewed lockfile
 uv run python server.py                                # run the MCP server over stdio
 uv run pytest -q                                      # run offline mocked behavior tests
 ```

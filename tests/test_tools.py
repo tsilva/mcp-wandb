@@ -88,7 +88,7 @@ def test_plot_run_metric_returns_a_png_image(server):
 
     assert isinstance(result, server.Image)
     assert result.data.startswith(b"\x89PNG\r\n\x1a\n")
-    assert result.to_image_content().mimeType == "image/png"
+    assert result.to_image_content().mime_type == "image/png"
     run.history.assert_called_once_with(keys=["loss"], pandas=False)
 
 

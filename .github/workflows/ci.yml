@@ -24,17 +24,17 @@ jobs:
           enable-cache: true
 
       - name: Install the locked environment
-        run: uv sync --locked --no-config --exclude-newer '7 days'
+        run: uv sync --locked --exclude-newer '7 days'
 
       - name: Check formatting and lint
         run: |
-          uv run --locked --no-config --exclude-newer '7 days' ruff format --check .
-          uv run --locked --no-config --exclude-newer '7 days' ruff check .
+          uv run --locked --exclude-newer '7 days' ruff format --check .
+          uv run --locked --exclude-newer '7 days' ruff check .
 
       - name: Run offline tests
-        run: uv run --locked --no-config --exclude-newer '7 days' pytest -q
+        run: uv run --locked --exclude-newer '7 days' pytest -q
 
       - name: Audit locked dependencies
         run: >-
-          uv audit --locked --no-config --exclude-newer '7 days'
+          uv audit --locked --exclude-newer '7 days'
           --python-platform x86_64-manylinux_2_28
