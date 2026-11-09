@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Model Context Protocol (MCP) server that exposes Weights & Biases (W&B) functionality as tools. Built with FastMCP, it provides tools for querying W&B projects, runs, metrics, and generating metric plots.
+A Model Context Protocol (MCP) server that exposes Weights & Biases (W&B) functionality as tools. Built with the MCP Python SDK, it provides tools for querying W&B projects, runs, metrics, and generating metric plots.
 
 ## Development Commands
 
@@ -21,13 +21,13 @@ WANDB_API_KEY=<key> TEST_WANDB_ENTITY=<entity> TEST_WANDB_PROJECT=<project> TEST
 
 ## Architecture
 
-**Single-file server** (`server.py`): All MCP tools are defined in one file using the `@mcp.tool()` decorator from FastMCP.
+**Single-file server** (`server.py`): All MCP tools are defined in one file using the `@mcp.tool()` decorator from MCPServer.
 
 **MCP Tools exposed:**
 - `get_wandb_projects` - List projects for an entity
 - `list_wandb_runs` - List runs in a project
 - `list_project_metrics` - Get unique metric names across all runs
-- `plot_run_metric` - Generate PNG plot of metrics (returns base64-encoded image via FastMCP `Image`)
+- `plot_run_metric` - Generate PNG plot of metrics (returns base64-encoded image via the MCP SDK’s `Image`)
 - `get_run_details` - Get comprehensive run info (overview, config, summary, system metrics)
 
 **Environment:** Requires `WANDB_API_KEY` environment variable (loaded via python-dotenv from `.env` file).

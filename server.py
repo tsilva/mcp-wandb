@@ -5,12 +5,12 @@ from typing import List
 import matplotlib.pyplot as plt
 import wandb
 from dotenv import load_dotenv
-from mcp.server.fastmcp import FastMCP, Image
+from mcp.server.mcpserver import Image, MCPServer
 
 load_dotenv(override=True)
 
-# Initialize FastMCP server
-mcp = FastMCP("mcp-wandb")
+# Initialize MCP server
+mcp = MCPServer("mcp-wandb")
 
 _api: wandb.Api | None = None
 
@@ -133,7 +133,7 @@ async def plot_run_metric(
         plt.close()
         buf.seek(0)
 
-        # hand raw bytes to FastMCP – no manual b64 step
+        # hand raw bytes to the MCP SDK for encoding
         return Image(data=buf.getvalue(), format="png")
 
     except Exception as e:
